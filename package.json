@@ -1,14 +1,14 @@
 {
   "name": "papertrail",
   "module": "index.js",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+  "dependencies": {
+    "escpos": "^3.0.0-alpha.6",
+    "escpos-serialport": "^3.0.0-alpha.4",
+    "express": "^4.21.1",
+    "usb": "^2.14.0"
   },
   "scripts": {
-    "start": "bun run index.js"
+    "start": "node index.js"
   },
   "type": "module"
 }

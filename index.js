@@ -1,53 +1,83 @@
-const server = Bun.serve({
-  port: 3000,
-  async fetch(req) {
-    const path = new URL(req.url).pathname
+import express from 'express'
+import fs from 'fs/promises'
+import path from 'path'
 
-    if (req.method === 'GET' && path === '/api/events') {
-      const { searchParams } = new URL(req.url)
+const app = express()
+const PORT = 3000
 
-      if (!searchParams.get('date'))
-        return new Response('date is required', { status: 400 })
+app.use(express.json())
 
-      const events = await getEvents(searchParams.get('date'))
-      return new Response(JSON.stringify(events))
-    }
-
-    if (req.method === 'POST' && path === '/api/events') {
-      const body = await req.json()
-
-      if (!body.date) return new Response('date is required', { status: 400 })
-
-      if (!body.events || !Array.isArray(body.events))
-        return new Response('events are required', { status: 400 })
-
-      const think = await addEvents(body.date, body.events)
-      return new Response(think)
-    }
-
-    return new Response('not found', { status: 404 })
-  },
-})
-
-const getEvents = (date) => {
+const getEvents = async (date) => {
   const d = new Date(date)
-  const file = Bun.file(`data/${d.toISOString()}.json`, {
-    type: 'application/json',
-  })
+  const filePath = path.join('data', `${d.toISOString().substring(0, 10)}.json`)
 
-  if (file.size === 0) return new Response('not found', { status: 404 })
+  try {
+    const fileStats = await fs.stat(filePath)
+    if (fileStats.size === 0) throw new Error('not found')
 
-  console.log(file.size)
-
-  return {
-    events: [],
+    const data = await fs.readFile(filePath, 'utf-8')
+    return JSON.parse(data)
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error('not found')
+    }
+    throw error
   }
 }
 
 const addEvents = async (date, events) => {
+  const filePath = path.join(
+    'data',
+    `${new Date(date).toISOString().substring(0, 10)}.json`
+  )
+  await fs.writeFile(filePath, JSON.stringify(events))
   return events
 }
 
-// Print
-// const data = `Hello world`
-// await Bun.write('/dev/usb/lp0', data)
+app.get('/api/events', async (req, res) => {
+  const date = req.query.date
+
+  if (!date) {
+    return res.status(400).send('date is required')
+  }
+
+  try {
+    const events = await getEvents(date)
+    res.json(events)
+  } catch (error) {
+    if (error.message === 'not found') {
+      return res.status(404).send('not found')
+    }
+    res.status(500).send('Server Error')
+  }
+})
+
+app.post('/api/events', async (req, res) => {
+  const { date, events } = req.body
+
+  if (!date) {
+    return res.status(400).send('date is required')
+  }
+
+  if (!events || !Array.isArray(events)) {
+    return res.status(400).send('events are required')
+  }
+
+  console.log('cleared validation')
+
+  try {
+    const addedEvents = await addEvents(date, events)
+    console.log('success, addedEvents:', addedEvents)
+    res.json(addedEvents)
+  } catch (error) {
+    res.status(500).send('Server Error')
+  }
+})
+
+app.use((req, res) => {
+  res.status(404).send('not found')
+})
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`)
+})
