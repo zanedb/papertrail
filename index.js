@@ -1,11 +1,26 @@
 import express from 'express'
 import fs from 'fs/promises'
 import path from 'path'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 
 const app = express()
 const PORT = 3000
 
 app.use(express.json())
+
+const execPromise = promisify(exec)
+
+const print = async (feed) => {
+  // TODO: figure out line delineation
+  // max of 80 chars per line
+  try {
+    await execPromise(`echo "${feed}" > /dev/usb/lp0`)
+    return { code: 200, message: `Successfully sent "${feed}" to /dev/usb/lp0` }
+  } catch (error) {
+    return { code: 500, message: `Error executing command: ${error}` }
+  }
+}
 
 const getEvents = async (date) => {
   const d = new Date(date)
@@ -72,6 +87,17 @@ app.post('/api/events', async (req, res) => {
   } catch (error) {
     res.status(500).send('Server Error')
   }
+})
+
+app.post('/api/print', async (req, res) => {
+  const { feed } = req.body
+
+  if (!feed) {
+    return res.status(400).send('feed is required')
+  }
+
+  const response = await print(feed)
+  res.status(response.code).send(response.message)
 })
 
 app.use((req, res) => {
