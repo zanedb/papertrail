@@ -1,8 +1,7 @@
 import express from 'express'
-import fs from 'fs/promises'
-import path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { getEvents, getEventsFeed, addEvents } from './calendar.js'
 
 const app = express()
 const PORT = 3000
@@ -20,33 +19,6 @@ const print = async (feed) => {
   } catch (error) {
     return { code: 500, message: `Error executing command: ${error}` }
   }
-}
-
-const getEvents = async (date) => {
-  const d = new Date(date)
-  const filePath = path.join('data', `${d.toISOString().substring(0, 10)}.json`)
-
-  try {
-    const fileStats = await fs.stat(filePath)
-    if (fileStats.size === 0) throw new Error('not found')
-
-    const data = await fs.readFile(filePath, 'utf-8')
-    return JSON.parse(data)
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      throw new Error('not found')
-    }
-    throw error
-  }
-}
-
-const addEvents = async (date, events) => {
-  const filePath = path.join(
-    'data',
-    `${new Date(date).toISOString().substring(0, 10)}.json`
-  )
-  await fs.writeFile(filePath, JSON.stringify(events))
-  return events
 }
 
 app.get('/api/events', async (req, res) => {
