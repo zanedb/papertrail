@@ -10,6 +10,20 @@ app.use(express.json())
 
 const execPromise = promisify(exec)
 
+const startup = async () => {
+  console.log('Starting...')
+  try {
+    await execPromise('sudo chmod 666 /dev/usb/lp0')
+    console.log(`Enabled write permissions for /dev/usb/lp0`)
+  } catch (error) {
+    console.log(`Error enabling write permissions for /dev/usb/lp0: ${error}`)
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`)
+  })
+}
+
 const print = async (feed) => {
   // TODO: figure out line delineation
   // max of 80 chars per line
@@ -76,6 +90,4 @@ app.use((req, res) => {
   res.status(404).send('not found')
 })
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`)
-})
+startup()
