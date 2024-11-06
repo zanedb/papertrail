@@ -10,10 +10,11 @@ Dot matrix-powered weekly news sum
 
 In my case, this is on a [Raspberry Pi Zero W](https://vilros.com/products/raspberry-pi-zero-w-basic-starter-kit-1), so I followed [this script](https://gist.github.com/mandrean/71f2cbf707025a5983c0fc04d78f3e9a).
 
-2. Install dependencies.
+2. Install dependencies & create data folder.
 
 ```bash
 npm install
+mkdir data
 ```
 
 3. Run the script.
