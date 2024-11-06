@@ -2,7 +2,8 @@
   "name": "papertrail",
   "module": "index.js",
   "dependencies": {
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "luxon": "^3.5.0"
   },
   "scripts": {
     "start": "node index.js"

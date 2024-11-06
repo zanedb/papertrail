@@ -1,8 +1,12 @@
 import fs from 'fs/promises'
 import path from 'path'
+import { DateTime } from 'luxon'
+const { TZ } = process.env
 
-const today = new Date()
+const today = DateTime.now().setZone(TZ)
+const MAX_CHARS_MINUS_TIME = 62
 
+/*
 // we'll use this to display each day's info
 Date.prototype.addDays = function (days) {
   var date = new Date(this.valueOf())
@@ -30,10 +34,24 @@ Date.prototype.prettyFormat = function (full = true) {
         weekday: 'long',
       })
 }
+ */
+
+// returns Monday, Jan 1, 2024 format
+DateTime.prototype.prettyFormat = function () {
+  this.toLocaleString({
+    weekday: 'long',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
 
 // fetches the next 7 days of events from specified date
 export const getEvents = async (date) => {
-  const filePath = path.join('data', `${new Date(date).isoFormat()}.json`)
+  const filePath = path.join(
+    'data',
+    `${DateTime.fromISO(date).toISODate()}.json`
+  )
 
   try {
     const fileStats = await fs.stat(filePath)
@@ -53,32 +71,42 @@ export const getEvents = async (date) => {
 export const getEventsFeed = async () => {
   const events = await getEvents(today)
   const days = [1, 2, 3, 4, 5, 6, 7]
-  let feed = `Week of ${today.addDays(1).prettyFormat()}\n\n`
+  let feed = `Week of ${today.plus({ days: 1 }).toFormat('EEEE, DD')}\n\n`
 
   days.map((day) => {
-    const date = today.addDays(day)
+    const date = today.plus({ days: day })
     const filtered = events.filter(
-      (event) => event.startDate.substring(0, 10) === date.isoFormat()
+      (event) =>
+        DateTime.fromISO(event.startDate).toISODate() === date.toISODate()
     )
 
     if (filtered.length > 0) {
-      feed += `${date.prettyFormat(false)}\n`
+      feed += `> ${date.toFormat('EEEE')}\n` // Monday
       feed += filtered
         .map((event) => {
-          return `${event.title} - ${event.startDate}`
+          // Name of event if all day, otherwise name of event [variable space] start time-end time
+          return event.isAllDay
+            ? `- ${event.title} -`
+            : `${event.title} ${' '.repeat(
+                MAX_CHARS_MINUS_TIME - event.title.length
+              )}${DateTime.fromISO(event.startDate).toFormat(
+                'hh:mma'
+              )} - ${DateTime.fromISO(event.endDate).toFormat('hh:mma')}`
         })
         .join('\n')
       feed += '\n\n'
     }
   })
 
-  console.log(feed)
   return feed
 }
 
 // adds 7 days worth of events to a dated json file
 export const addEvents = async (date, events) => {
-  const filePath = path.join('data', `${today.isoFormat()}.json`)
+  const filePath = path.join(
+    'data',
+    `${DateTime.fromISO(date).toISODate()}.json`
+  )
   await fs.writeFile(filePath, JSON.stringify(events))
   return events
 }
