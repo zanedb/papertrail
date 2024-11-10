@@ -64,8 +64,6 @@ app.post('/api/events', async (req, res) => {
     return res.status(400).send('events are required')
   }
 
-  console.log('cleared validation')
-
   try {
     const addedEvents = await addEvents(date, events)
     console.log('success, addedEvents:', addedEvents)
@@ -80,6 +78,14 @@ app.post('/api/print', async (req, res) => {
 
   if (!feed) {
     return res.status(400).send('feed is required')
+  }
+
+  // TEMP
+  if (feed === 'PRINTEVENTS') {
+    const events = await getEventsFeed()
+    console.log(events)
+    await print('\n\n\n' + events)
+    return res.status(200).send('printed events')
   }
 
   const response = await print(feed)
