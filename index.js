@@ -1,8 +1,10 @@
 import express from 'express'
+import dotenv from 'dotenv'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { getEvents, getEventsFeed, addEvents } from './calendar.js'
 
+dotenv.config()
 const app = express()
 const PORT = 3000
 
@@ -12,6 +14,25 @@ const execPromise = promisify(exec)
 const response = (res, code, message) =>
   res.status(code).send({ code, message })
 
+const authenticate = (req, res, next) => {
+  const authHeader = req.headers['authorization']
+  if (!authHeader) {
+    return response(res, 401, 'Authorization header missing')
+  }
+
+  const token = authHeader.split(' ')[1]
+
+  if (!token || token !== process.env.TOKEN) {
+    return response(res, 401, 'Unauthorized: invalid or missing token')
+  }
+
+  next()
+}
+
+if (process.env.TOKEN !== undefined) {
+  console.log('Token found, running with Authorization header required')
+  app.use('/*', authenticate)
+}
 
 const startup = async () => {
   console.log('Starting...')
