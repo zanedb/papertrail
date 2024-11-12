@@ -25,13 +25,14 @@ const startup = async () => {
 }
 
 const print = async (feed) => {
-  // TODO: figure out line delineation
-  // max of 80 chars per line
+  // Note: this is an EASY vector for command injection
+  // I'm not really worried about it since only I'll be sending data to this server + there's an auth token
+  // But keep this in mind if used for more public things
   try {
     await execPromise(`echo "${feed}" > /dev/usb/lp0`)
-    return { code: 200, message: `Successfully sent "${feed}" to /dev/usb/lp0` }
+    return { code: 200, message: `Successfully sent to /dev/usb/lp0`, feed }
   } catch (error) {
-    return { code: 500, message: `Error executing command: ${error}` }
+    return { code: 500, message: `Error executing command: ${error}`, feed }
   }
 }
 
@@ -73,11 +74,11 @@ app.post('/api/events', async (req, res) => {
   }
 })
 
-app.post('/api/print', async (req, res) => {
+app.post('/print/text', async (req, res) => {
   const { feed } = req.body
 
   if (!feed) {
-    return res.status(400).send('feed is required')
+    return response(res, 400, '`feed` is required')
   }
 
   // TEMP
@@ -85,11 +86,11 @@ app.post('/api/print', async (req, res) => {
     const events = await getEventsFeed()
     console.log(events)
     await print('\n\n\n' + events)
-    return res.status(200).send('printed events')
+    return response(res, 200, 'printed events')
+  const kx = await print(feed)
+  res.status(kx.code).send(kx)
   }
 
-  const response = await print(feed)
-  res.status(response.code).send(response.message)
 })
 
 app.use((req, res) => {
