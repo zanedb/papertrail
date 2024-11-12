@@ -9,6 +9,9 @@ const PORT = 3000
 app.use(express.json())
 
 const execPromise = promisify(exec)
+const response = (res, code, message) =>
+  res.status(code).send({ code, message })
+
 
 const startup = async () => {
   console.log('Starting...')
@@ -94,7 +97,7 @@ app.post('/print/text', async (req, res) => {
 })
 
 app.use((req, res) => {
-  res.status(404).send('not found')
+  respond(res, 404, 'Endpoint not found')
 })
 
 startup()
