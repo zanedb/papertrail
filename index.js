@@ -1,4 +1,6 @@
 import express from 'express'
+import multer from 'multer'
+import imageToAscii from 'image-to-ascii'
 import dotenv from 'dotenv'
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -7,10 +9,11 @@ import { getEvents, getEventsFeed, addEvents } from './calendar.js'
 dotenv.config()
 const app = express()
 const PORT = 3000
-
+const storage = multer.memoryStorage()
+const upload = multer({ storage })
+const execPromise = promisify(exec)
 app.use(express.json())
 
-const execPromise = promisify(exec)
 const response = (res, code, message) =>
   res.status(code).send({ code, message })
 
@@ -35,7 +38,6 @@ if (process.env.TOKEN !== undefined) {
 }
 
 const startup = async () => {
-  console.log('Starting...')
   try {
     await execPromise('sudo chmod 666 /dev/usb/lp0')
     console.log(`Enabled write permissions for /dev/usb/lp0`)
@@ -111,10 +113,31 @@ app.post('/print/text', async (req, res) => {
     console.log(events)
     await print('\n\n\n' + events)
     return response(res, 200, 'printed events')
-  const kx = await print(feed)
-  res.status(kx.code).send(kx)
   }
 
+  const kx = await print(feed)
+  res.status(kx.code).send(kx)
+})
+
+app.post('/print/image', upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    return response(res, 400, 'No image provided')
+  }
+
+  imageToAscii(
+    req.file.buffer,
+    {
+      size: { width: 40 },
+    },
+    async (err, ascii) => {
+      if (err) {
+        return response(res, 500, 'Error converting image to ASCII')
+      }
+
+      const kx = await print(ascii)
+      res.status(kx.code).send(kx)
+    }
+  )
 })
 
 app.use((req, res) => {

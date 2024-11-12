@@ -2,8 +2,11 @@
   "name": "papertrail",
   "module": "index.js",
   "dependencies": {
+    "dotenv": "^16.4.5",
     "express": "^4.21.1",
-    "luxon": "^3.5.0"
+    "image-to-ascii": "^3.2.1",
+    "luxon": "^3.5.0",
+    "multer": "^1.4.5-lts.1"
   },
   "scripts": {
     "start": "node index.js"
