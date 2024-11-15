@@ -1,3 +1,4 @@
+import fs from 'fs'
 import express from 'express'
 import multer from 'multer'
 import imageToAscii from 'image-to-ascii'
@@ -8,11 +9,18 @@ import { getEvents, getEventsFeed, addEvents } from './calendar.js'
 
 dotenv.config()
 const app = express()
-const PORT = 3000
-const storage = multer.memoryStorage()
-const upload = multer({ storage })
+const PORT = process.env.PORT || 3000
 const execPromise = promisify(exec)
 app.use(express.json())
+
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10mb
+})
+
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads')
+}
 
 const response = (res, code, message) =>
   res.status(code).send({ code, message })
@@ -124,8 +132,10 @@ app.post('/print/image', upload.single('image'), async (req, res) => {
     return response(res, 400, 'No image provided')
   }
 
+  const imagePath = path.join(__dirname, req.file.path)
+
   imageToAscii(
-    req.file.buffer,
+    imagePath,
     {
       size: { width: 40 },
     },
