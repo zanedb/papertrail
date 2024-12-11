@@ -58,6 +58,9 @@ const startup = async () => {
 }
 
 const print = async (feed) => {
+  // Pre-print filters
+  feed = feed.replace(`’`, `'`)
+
   // Note: this is an EASY vector for injection/RCE
   // I'm not really worried about it since only I'll be sending data to this server + there's an auth token
   // But keep this in mind if used for more public things
