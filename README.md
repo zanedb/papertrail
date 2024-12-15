@@ -34,11 +34,20 @@ This will return `200 OK` if the image prints, otherwise a corresponding error.
 
 1. Install Node.js.
 
-In my case, this is on a [Raspberry Pi Zero W](https://vilros.com/products/raspberry-pi-zero-w-basic-starter-kit-1), so I followed [this script](https://gist.github.com/mandrean/71f2cbf707025a5983c0fc04d78f3e9a).
+In my case, this is on a [Raspberry Pi Zero W](https://vilros.com/products/raspberry-pi-zero-w-basic-starter-kit-1), so I used `apt`.
+
+```sh
+sudo apt update && sudo apt upgrade
+sudo apt remove nodejs npm -y
+sudo apt install nodejs npm
+```
+
+[This script](https://gist.github.com/mandrean/71f2cbf707025a5983c0fc04d78f3e9a) may also be helpful if the above doesn't work.
 
 2. Install dependencies.
 
-```bash
+```sh
+sudo apt install graphicsmagick # for image-to-ascii
 npm install
 npm install -g pm2
 ```
@@ -51,13 +60,13 @@ TOKEN=CHANGE_THIS
 PORT=3000
 ```
 
-3. Run the script.
+4. Run the script.
 
 ```bash
 npm start
 ```
 
-4. For long-term use, use `pm2` to daemonize it.
+5. For long-term use, use `pm2` to daemonize it.
 
 ```sh
 pm2 start index.js --name papertrail
