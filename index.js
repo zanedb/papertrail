@@ -1,15 +1,19 @@
 import fs from 'fs'
 import express from 'express'
+import cors from 'cors'
 import multer from 'multer'
 import imageToAscii from 'image-to-ascii'
 import dotenv from 'dotenv'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import DotMatrixPrinter from './printer.js'
 
 dotenv.config()
+
+const printer = new DotMatrixPrinter()
+
 const app = express()
 const PORT = process.env.PORT || 3000
-const execPromise = promisify(exec)
+
+app.use(cors())
 app.use(express.json())
 
 const upload = multer({
@@ -44,31 +48,16 @@ if (process.env.TOKEN !== undefined) {
   app.use('/*', authenticate)
 }
 
-const startup = async () => {
-  try {
-    await execPromise('sudo chmod 666 /dev/usb/lp0')
-    console.log(`Enabled write permissions for /dev/usb/lp0`)
-  } catch (error) {
-    console.log(`Error enabling write permissions for /dev/usb/lp0: ${error}`)
-  }
-
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`)
-  })
-}
-
-const print = async (feed) => {
+const print = async (feed, res) => {
   // Pre-print filters
   feed = feed.replace(`’`, `'`)
 
-  // Note: this is an EASY vector for injection/RCE
-  // I'm not really worried about it since only I'll be sending data to this server + there's an auth token
-  // But keep this in mind if used for more public things
   try {
-    await execPromise(`echo "${feed}" > /dev/usb/lp0`)
-    return { code: 200, message: `Successfully sent to /dev/usb/lp0`, feed }
-  } catch (error) {
-    return { code: 500, message: `Error executing command: ${error}`, feed }
+    await printer.printText(feed)
+    await printer.formFeed() // New page
+    res.status(200).send('Text printed')
+  } catch (e) {
+    return res.status(500).send(`Error printing text: ${e.message}`)
   }
 }
 
@@ -79,8 +68,7 @@ app.post('/print/text', async (req, res) => {
     return response(res, 400, '`feed` is required')
   }
 
-  const kx = await print(feed)
-  res.status(kx.code).send(kx)
+  await print(feed, res)
 })
 
 app.post('/print/image', upload.single('image'), async (req, res) => {
@@ -100,8 +88,7 @@ app.post('/print/image', upload.single('image'), async (req, res) => {
         return response(res, 500, 'Error converting image to ASCII')
       }
 
-      const kx = await print(ascii)
-      res.status(kx.code).send(kx)
+      await print(feed, res)
     }
   )
 })
@@ -110,4 +97,6 @@ app.use((req, res) => {
   respond(res, 404, 'Endpoint not found')
 })
 
-startup()
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`)
+})
