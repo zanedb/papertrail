@@ -1,0 +1,118 @@
+<html>
+  <head>
+    <title>Papertrail</title>
+  </head>
+  <body>
+    <main>
+      <textarea id="feed" autofocus></textarea>
+    </main>
+    <style>
+      * {
+        line-height: calc(1em + 0.5rem);
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f0f0f0;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #feed {
+        border: 20px dotted #f0f0f0;
+        border-top: none;
+        border-bottom: none;
+        font-family: monospace;
+        font-size: 1rem;
+        field-sizing: content;
+        min-height: 100%;
+        min-width: 100%;
+        max-width: 1024px;
+        padding: 4rem;
+      }
+
+      #feed:focus {
+        outline: none;
+      }
+
+      main {
+        max-width: 1024px;
+        margin: auto;
+        border-left: #fff solid 2rem;
+        border-right: #fff solid 2rem;
+      }
+    </style>
+    <script>
+      ;(function () {
+        const inputField = document.getElementById('feed')
+        const storageKey = 'feedValue'
+        const maxLineLength = 80
+
+        window.addEventListener('load', () => {
+          const savedValue = localStorage.getItem(storageKey)
+          if (savedValue !== null) {
+            inputField.value = savedValue
+          }
+        })
+
+        function debounce(func, delay) {
+          let timeout
+          return function (...args) {
+            clearTimeout(timeout)
+            timeout = setTimeout(() => func.apply(this, args), delay)
+          }
+        }
+
+        function enforceLineLength(value) {
+          return value
+            .split('\n')
+            .map((line) => line.slice(0, maxLineLength))
+            .join('\n')
+        }
+
+        const saveToLocalStorage = debounce((value) => {
+          localStorage.setItem(storageKey, value)
+        }, 300) // 300ms delay
+
+        inputField.addEventListener('input', (event) => {
+          const adjustedValue = enforceLineLength(event.target.value)
+          if (adjustedValue !== event.target.value) {
+            event.target.value = adjustedValue // Update the field if trimmed
+          }
+
+          saveToLocalStorage(event.target.value)
+        })
+
+        window.addEventListener('keydown', (event) => {
+          if ((event.metaKey || event.ctrlKey) && event.key === 'p') {
+            event.preventDefault()
+
+            const feed = inputField.value
+
+            let token = prompt('Token?')
+
+            fetch('/print/text', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ feed }),
+            })
+              .then((response) => {
+                if (response.ok) {
+                  alert('Feed content sent successfully!')
+                } else {
+                  alert('Failed to send feed content.')
+                }
+              })
+              .catch((error) => {
+                console.error('Error:', error)
+                alert('An error occurred while sending feed content.')
+              })
+          }
+        })
+      })()
+    </script>
+  </body>
+</html>
