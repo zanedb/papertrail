@@ -3,7 +3,9 @@ import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
 import imageToAscii from 'image-to-ascii'
+import path from 'path'
 import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
 import DotMatrixPrinter from './printer.js'
 
 dotenv.config()
@@ -12,6 +14,8 @@ const printer = new DotMatrixPrinter()
 
 const app = express()
 const PORT = process.env.PORT || 3000
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 app.use(cors())
 app.use(express.json())
@@ -45,7 +49,7 @@ const authenticate = (req, res, next) => {
 
 if (process.env.TOKEN !== undefined) {
   console.log('Token found, running with Authorization header required')
-  app.use('/*', authenticate)
+  app.use('/print/*', authenticate)
 }
 
 const print = async (feed, res) => {
@@ -93,8 +97,12 @@ app.post('/print/image', upload.single('image'), async (req, res) => {
   )
 })
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+})
+
 app.use((req, res) => {
-  respond(res, 404, 'Endpoint not found')
+  return response(res, 404, 'Endpoint not found')
 })
 
 app.listen(PORT, () => {

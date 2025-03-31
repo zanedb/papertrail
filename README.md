@@ -1,6 +1,6 @@
 # papertrail
 
-Printing API for my [KX-P2123](https://www.nefec.org/upm/printers/mpa223.htm) dot matrix printer. It listens for requests on `/print/text` and `/print/image` and does what you'd imagine, though the images print in glorious 80-char ASCII instead of digital.
+Printing API for my [KX-P2123](https://www.nefec.org/upm/printers/mpa223.htm) dot matrix printer. It listens for requests on `/print/text` and `/print/image` and does what you'd imagine, though the images print in glorious 80-char ASCII instead of digital. I’ve also built a frontend that’s served at `/`.
 
 I use these endpoints in several Shortcuts I've written, such as for my weekly calendar.
 
@@ -49,7 +49,6 @@ sudo apt install nodejs npm
 ```sh
 sudo apt install graphicsmagick # for image-to-ascii
 npm install
-npm install -g pm2
 ```
 
 3. Create `.env` and include your version of the following:
@@ -69,6 +68,7 @@ npm start
 5. For long-term use, use `pm2` to daemonize it.
 
 ```sh
+npm install -g pm2
 pm2 start index.js --name papertrail
 pm2 startup
 pm2 save
