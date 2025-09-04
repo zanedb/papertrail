@@ -175,3 +175,6 @@ dist
 .DS_Store
 
 data
+
+# Word of the day state file
+last-word.json

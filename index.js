@@ -65,6 +65,60 @@ const print = async (feed, res) => {
   }
 }
 
+const STATE_FILE = 'last-word.json'
+
+const checkWord = async () => {
+  try {
+    const req = await fetch('https://api.zanedb.com/wordoftheday')
+    const data = await req.json()
+    const { word, day } = data
+
+    // Read last printed word from state file
+    let lastWord = null
+    try {
+      if (fs.existsSync(STATE_FILE)) {
+        const stateData = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
+        lastWord = stateData.lastWord
+      }
+    } catch (e) {
+      console.log('Could not read state file, treating as first run')
+    }
+
+    // Only print if this word hasn't been printed before
+    if (lastWord !== word) {
+      // Format the output: word on left, date on right, max 80 chars
+      const maxLength = 80
+      const dateStr = day
+      const totalContentLength = word.length + dateStr.length
+      const spacesNeeded = Math.max(1, maxLength - totalContentLength)
+      const spaces = ' '.repeat(spacesNeeded)
+
+      const formattedLine = `\n${word}${spaces}${dateStr}\n`
+
+      // Print to console
+      console.log(formattedLine)
+
+      // Print to printer
+      await printer.printText(formattedLine)
+
+      // Save the word to state file
+      const stateData = {
+        lastWord: word,
+        lastPrinted: new Date().toISOString(),
+      }
+      fs.writeFileSync(STATE_FILE, JSON.stringify(stateData, null, 2))
+    }
+  } catch (error) {
+    console.error('Error checking word of the day:', error)
+  }
+}
+
+// Check word every minute (60000ms)
+setInterval(checkWord, 60000)
+
+// Check immediately on startup
+checkWord()
+
 app.post('/print/text', async (req, res) => {
   const { feed } = req.body
 
